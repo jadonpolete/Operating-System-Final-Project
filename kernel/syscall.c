@@ -162,19 +162,38 @@ syscall(void)
   struct proc *p = myproc();
 
   num = p->trapframe->a7;
-  if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
-    p->trapframe->a0 = syscalls[num]();
 
-    // Print trace output if this syscall is enabled in the process tracemask.
-    if((p->tracemask >> num) & 1) {
+// Save original syscall arguments before the syscall runs.
+// This is important because a0 is overwritten with the return value.
+uint64 arg0 = p->trapframe->a0;
+uint64 arg1 = p->trapframe->a1;
+uint64 arg2 = p->trapframe->a2;
+
+if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
+  p->trapframe->a0 = syscalls[num]();
+
+  // Print trace output if this syscall is enabled in the process tracemask.
+  if((p->tracemask >> num) & 1) {
+    char *name = syscall_names[num] ? syscall_names[num] : "unknown";
+
+    if(num == SYS_read || num == SYS_write) {
+      printf("%d: syscall %s(fd=%d, buf=0x%lx, n=%d) -> %ld\n",
+             p->pid,
+             name,
+             (int)arg0,
+             arg1,
+             (int)arg2,
+             p->trapframe->a0);
+    } else {
       printf("%d: syscall %s -> %ld\n",
              p->pid,
-             syscall_names[num] ? syscall_names[num] : "unknown",
+             name,
              p->trapframe->a0);
     }
-  } else {
-    printf("%d %s: unknown sys call %d\n",
-            p->pid, p->name, num);
-    p->trapframe->a0 = -1;
+  }
+} else {
+  printf("%d %s: unknown sys call %d\n",
+          p->pid, p->name, num);
+  p->trapframe->a0 = -1;
   }
 }
