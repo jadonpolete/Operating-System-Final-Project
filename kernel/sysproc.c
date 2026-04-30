@@ -22,6 +22,18 @@ sys_getpid(void)
   return myproc()->pid;
 }
 
+// System trace
+uint64
+sys_trace(void)
+{
+  int mask;
+
+  // Store the user-provided trace mask for the current process
+  argint(0, &mask);
+  myproc()->tracemask = mask;
+  return 0;
+}
+
 uint64
 sys_fork(void)
 {
