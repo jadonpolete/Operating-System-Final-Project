@@ -57,6 +57,9 @@ The following files were modified:
 - `user/traceforktest.c`
   - Added a user-space test program for fork inheritance.
 
+- `user/traceargtest.c`
+  - Added a user-space test program for basic syscall argument tracing.
+
 - `Makefile`
   - Added the test programs to the xv6 user program list.
 
@@ -76,3 +79,138 @@ If these are not installed, they can usually be installed with:
 ```bash
 sudo apt update
 sudo apt install git make qemu-system-misc gcc-riscv64-linux-gnu binutils-riscv64-linux-gnu
+```
+
+Depending on the environment, additional xv6 dependencies may already be installed.
+
+## Build Instructions
+
+From the root of the repository, run:
+
+```bash
+make clean
+make qemu
+```
+
+If the build succeeds, xv6 should boot and display a shell prompt similar to:
+
+```text
+init: starting sh
+$
+```
+
+To exit QEMU, press:
+
+```text
+Ctrl + A, then X
+```
+
+## Testing Instructions
+
+After xv6 boots, run the included test programs from the xv6 shell.
+
+### Basic Trace Test
+
+Run:
+
+```text
+tracetest
+```
+
+Expected behavior:
+
+- Enables tracing for `getpid`
+- Calls `getpid`
+- Displays a trace line containing the process ID, syscall name, and return value
+- Disables tracing before exiting
+
+Example output:
+
+```text
+Starting trace test
+3: syscall getpid -> 3
+Current pid: 3
+Trace test complete
+```
+
+The process ID may be different depending on the run.
+
+### Argument Trace Test
+
+Run:
+
+```text
+traceargtest
+```
+
+Expected behavior:
+
+- Enables tracing for `write`
+- Calls `write` with a file descriptor, buffer, and byte count
+- Displays a trace line containing the syscall name, selected arguments, and return value
+
+Example output:
+
+```text
+Argument trace test
+6: syscall write(fd=1, buf=0x..., n=20) -> 20
+```
+
+The process ID and buffer address may be different depending on the run.
+
+### Fork Inheritance Test
+
+Run:
+
+```text
+traceforktest
+```
+
+Expected behavior:
+
+- Enables tracing for `getpid`
+- Calls `fork`
+- Child process calls `getpid`
+- Parent process calls `getpid`
+- Both parent and child produce trace output
+
+Example output:
+
+```text
+Starting fork trace test
+Child calling getpid
+5: syscall getpid -> 5
+Parent calling getpid
+4: syscall getpid -> 4
+Fork trace test complete
+```
+
+The process IDs may be different depending on the run.
+
+## Notes About This xv6 Version
+
+This version of xv6 uses `kfork()` in `kernel/proc.c` for the internal process creation logic. Because of that, trace mask inheritance was added inside `kfork()`.
+
+This xv6 version does not define `SYS_sleep`, so the project tests use available system calls such as `getpid`, `write`, `fork`, and `read`.
+
+## Version Control
+
+Development was completed on the `Feature` branch while keeping `main` as the baseline xv6 source. Commits were made in smaller steps to show the development process clearly.
+
+Example commit categories include:
+
+- `feat:` kernel implementation changes
+- `test:` user-space test programs
+- `docs:` documentation updates
+
+## Project Status
+
+The project currently supports:
+
+- A new `trace(int mask)` system call
+- Per-process trace mask storage
+- System call name logging
+- Return value logging
+- Basic argument logging for selected syscalls such as `read` and `write`
+- Fork inheritance of trace settings
+- User-space tests for basic tracing, argument tracing, and fork inheritance
